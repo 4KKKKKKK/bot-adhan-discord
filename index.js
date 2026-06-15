@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits, EmbedBuilder, SlashCommandBuilder, REST, Routes } from 'discord.js';
-import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, StreamType } from '@discordjs/voice';
+import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, StreamType, entersState } from '@discordjs/voice';
 import { Coordinates, CalculationMethod, PrayerTimes } from 'adhan';
 import cron from 'node-cron';
 import fs from 'fs';
@@ -111,34 +111,18 @@ async function playAdhanInGuild(guild, prayerName) {
           adapterCreator: guild.voiceAdapterCreator,
         });
         console.log(`[DEBUG] Voice channel joined successfully`);
+        console.log(`[DEBUG] Connection state: ${connection.state.status}`);
 
-        // Attendre que la connexion soit prête avant de jouer
-        await new Promise((resolve) => {
-          if (connection.state.status === VoiceConnectionStatus.Ready) {
-            console.log(`[DEBUG] Connection already ready`);
-            resolve();
-          } else {
-            console.log(`[DEBUG] Waiting for connection to be ready... (current: ${connection.state.status})`);
-
-            const onStateChange = (oldState, newState) => {
-              console.log(`[DEBUG] Connection: ${oldState.status} → ${newState.status}`);
-              if (newState.status === VoiceConnectionStatus.Ready) {
-                console.log(`[DEBUG] Connection is now ready!`);
-                connection.off('stateChange', onStateChange);
-                resolve();
-              }
-            };
-
-            connection.on('stateChange', onStateChange);
-
-            // Timeout après 10 secondes
-            setTimeout(() => {
-              console.log(`[DEBUG] Connection ready timeout (current state: ${connection.state.status})`);
-              connection.off('stateChange', onStateChange);
-              resolve();
-            }, 10000);
-          }
-        });
+        // Utiliser entersState (méthode officielle) au lieu d'attendre manuellement
+        try {
+          console.log(`[DEBUG] Waiting for connection Ready state using entersState...`);
+          await entersState(connection, VoiceConnectionStatus.Ready, 30000);
+          console.log(`[DEBUG] Connection is Ready!`);
+        } catch (error) {
+          console.log(`[DEBUG] Connection failed to reach Ready state: ${error.message}`);
+          console.log(`[DEBUG] Current state: ${connection.state.status}`);
+          console.log(`[DEBUG] Trying to play anyway...`);
+        }
 
         const player = createAudioPlayer();
         const audioPath = path.resolve(ADHAN_AUDIO);

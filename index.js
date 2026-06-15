@@ -22,22 +22,16 @@ try {
   console.log('[DIAGNOSTIC] ❌ @discordjs/opus NOT found');
 }
 try {
-  require('sodium-native');
-  console.log('[DIAGNOSTIC] ✅ sodium-native found');
+  require('@noble/ciphers/chacha');
+  console.log('[DIAGNOSTIC] ✅ @noble/ciphers found (chiffrement moderne, modes Discord actuels)');
 } catch (e) {
-  console.log('[DIAGNOSTIC] ❌ sodium-native NOT found');
+  console.log('[DIAGNOSTIC] ❌ @noble/ciphers NOT found — le chiffrement vocal NE marchera PAS');
 }
 try {
   require('opusscript');
-  console.log('[DIAGNOSTIC] ℹ️  opusscript found (fallback)');
+  console.log('[DIAGNOSTIC] ✅ opusscript found (encodeur opus pur JS)');
 } catch (e) {
-  console.log('[DIAGNOSTIC] ℹ️  opusscript NOT found');
-}
-try {
-  require('tweetnacl');
-  console.log('[DIAGNOSTIC] ℹ️  tweetnacl found (fallback)');
-} catch (e) {
-  console.log('[DIAGNOSTIC] ℹ️  tweetnacl NOT found');
+  console.log('[DIAGNOSTIC] ❌ opusscript NOT found');
 }
 
 // Configuration
@@ -136,6 +130,8 @@ async function playAdhanInGuild(guild, prayerName) {
           channelId: channel.id,
           guildId: guild.id,
           adapterCreator: guild.voiceAdapterCreator,
+          selfDeaf: false,
+          selfMute: false,
         });
         console.log(`[DEBUG] Voice channel joined successfully`);
         console.log(`[DEBUG] Connection state: ${connection.state.status}`);
@@ -148,7 +144,8 @@ async function playAdhanInGuild(guild, prayerName) {
         } catch (error) {
           console.log(`[DEBUG] Connection failed to reach Ready state: ${error.message}`);
           console.log(`[DEBUG] Current state: ${connection.state.status}`);
-          console.log(`[DEBUG] Trying to play anyway...`);
+          console.log(`[DEBUG] Waiting 3 seconds before playing anyway...`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
 
         const player = createAudioPlayer();
@@ -167,17 +164,10 @@ async function playAdhanInGuild(guild, prayerName) {
         console.log(`[DEBUG] Resource created successfully`);
 
         if (resource.volume) {
-          resource.volume.setVolume(1.0);
+          resource.volume.setVolume(0.3);
         }
 
-        player.play(resource);
-        const subscription = connection.subscribe(player);
-
-        console.log(`[DEBUG] Player state: ${player.state.status}`);
-        console.log(`[DEBUG] Subscription: ${subscription ? 'OK' : 'FAILED'}`);
-        console.log(`[DEBUG] FFmpeg path: ${ffmpegPath}`);
-
-        // Logger tous les changements d'état du player
+        // Attacher les listeners AVANT play() pour ne rien rater
         player.on('stateChange', (oldState, newState) => {
           console.log(`[DEBUG] Player: ${oldState.status} → ${newState.status}`);
         });
@@ -200,6 +190,13 @@ async function playAdhanInGuild(guild, prayerName) {
         connection.on('error', error => {
           console.error(`Erreur connexion:`, error.message);
         });
+
+        player.play(resource);
+        const subscription = connection.subscribe(player);
+
+        console.log(`[DEBUG] Player state: ${player.state.status}`);
+        console.log(`[DEBUG] Subscription: ${subscription ? 'OK' : 'FAILED'}`);
+        console.log(`[DEBUG] FFmpeg path: ${ffmpegPath}`);
 
       } catch (error) {
         console.error(`[${guild.name}] Erreur sur le canal ${channel.name}:`, error.message);
@@ -232,6 +229,9 @@ function checkPrayerTime() {
 
     // Vérifier chaque prière
     for (const [prayerName, prayerTime] of Object.entries(times)) {
+      // Pas d'adhan automatique pour le Fajr (trop tôt)
+      if (prayerName === 'fajr') continue;
+
       if (prayerTime.getHours() === currentHour && prayerTime.getMinutes() === currentMinute) {
         console.log(`⏰ [${guild.name}] C'est l'heure de ${prayerName}!`);
         playAdhanInGuild(guild, prayerName);

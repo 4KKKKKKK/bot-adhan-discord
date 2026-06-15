@@ -1,6 +1,7 @@
-FROM node:18-slim
+FROM node:22-slim
 
-# Install build dependencies for native modules
+# Build tools — filet de sécurité si un module natif (@snazzah/davey)
+# n'a pas de binaire précompilé pour la plateforme
 RUN apt-get update && apt-get install -y \
     python3 \
     make \

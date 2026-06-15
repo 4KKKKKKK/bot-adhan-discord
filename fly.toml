@@ -1,14 +1,23 @@
-app = "bot-adhan-discord"
-primary_region = "fra"
+# fly.toml — bot Adhan Discord (worker 24/7, pas de service HTTP)
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'bot-adhan-discord'
+primary_region = 'fra'
 
 [build]
 
-[env]
-  NODE_ENV = "production"
-
-[[services]]
-  internal_port = 8080
-  protocol = "tcp"
-
 [deploy]
-  strategy = "immediate"
+  strategy = 'immediate'
+
+[env]
+  NODE_ENV = 'production'
+
+# Pas de [http_service] / [[services]] : c'est un worker sans entrée HTTP.
+# La machine reste allumée tant que le process node tourne.
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

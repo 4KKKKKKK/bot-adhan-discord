@@ -7,10 +7,6 @@ import fs from 'fs';
 import path from 'path';
 import ffmpegPath from 'ffmpeg-static';
 import { createRequire } from 'module';
-import _sodium from 'libsodium-wrappers';
-
-// Initialize libsodium
-await _sodium.ready;
 
 // Configure ffmpeg for @discordjs/voice
 const require = createRequire(import.meta.url);

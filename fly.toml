@@ -1,0 +1,14 @@
+app = "bot-adhan-discord"
+primary_region = "fra"
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+[deploy]
+  strategy = "immediate"

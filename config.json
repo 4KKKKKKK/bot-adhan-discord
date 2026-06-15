@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "366539873823358976": {
+      "latitude": 50.8724424,
+      "longitude": 4.3536778,
+      "timezone": "Europe/Brussels",
+      "calculationMethod": "MWL",
+      "enabled": true
+    }
+  }
+}

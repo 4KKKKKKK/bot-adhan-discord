@@ -5,6 +5,13 @@ import { Coordinates, CalculationMethod, PrayerTimes } from 'adhan';
 import cron from 'node-cron';
 import fs from 'fs';
 import path from 'path';
+import ffmpegPath from 'ffmpeg-static';
+import { createRequire } from 'module';
+
+// Configure ffmpeg for @discordjs/voice
+const require = createRequire(import.meta.url);
+const prism = require('prism-media');
+prism.FFmpeg.getInfo = () => ({ command: ffmpegPath });
 
 // Configuration
 const TOKEN = process.env.DISCORD_TOKEN;
@@ -73,6 +80,8 @@ function formatTime(date) {
 
 // Jouer l'adhan dans les canaux vocaux actifs
 async function playAdhanInGuild(guild, prayerName) {
+  console.log(`[DEBUG] playAdhanInGuild called for ${prayerName}`);
+
   try {
     // Récupérer tous les canaux vocaux actifs (sauf AFK)
     const voiceChannels = guild.channels.cache.filter(channel =>
@@ -80,6 +89,8 @@ async function playAdhanInGuild(guild, prayerName) {
       channel.id !== guild.afkChannelId &&
       channel.members.size > 0
     );
+
+    console.log(`[DEBUG] Found ${voiceChannels.size} active voice channels`);
 
     if (voiceChannels.size === 0) {
       console.log(`[${guild.name}] Aucun canal vocal actif pour ${prayerName}`);
@@ -90,15 +101,23 @@ async function playAdhanInGuild(guild, prayerName) {
 
     // Jouer l'adhan dans chaque canal actif
     for (const [channelId, channel] of voiceChannels) {
+      console.log(`[DEBUG] Processing channel: ${channel.name} (${channel.id})`);
+
       try {
+        console.log(`[DEBUG] Joining voice channel...`);
         const connection = joinVoiceChannel({
           channelId: channel.id,
           guildId: guild.id,
           adapterCreator: guild.voiceAdapterCreator,
         });
+        console.log(`[DEBUG] Voice channel joined successfully`);
 
         const player = createAudioPlayer();
         const audioPath = path.resolve(ADHAN_AUDIO);
+
+        console.log(`[DEBUG] Audio path: ${audioPath}`);
+        console.log(`[DEBUG] File exists: ${fs.existsSync(audioPath)}`);
+
         const audioStream = fs.createReadStream(audioPath);
 
         const resource = createAudioResource(audioStream, {
@@ -106,15 +125,27 @@ async function playAdhanInGuild(guild, prayerName) {
           inlineVolume: true
         });
 
+        console.log(`[DEBUG] Resource created successfully`);
+
         if (resource.volume) {
           resource.volume.setVolume(1.0);
         }
 
         player.play(resource);
-        connection.subscribe(player);
+        const subscription = connection.subscribe(player);
+
+        console.log(`[DEBUG] Player state: ${player.state.status}`);
+        console.log(`[DEBUG] Subscription: ${subscription ? 'OK' : 'FAILED'}`);
+        console.log(`[DEBUG] FFmpeg path: ${ffmpegPath}`);
+
+        // Logger tous les changements d'état du player
+        player.on('stateChange', (oldState, newState) => {
+          console.log(`[DEBUG] Player: ${oldState.status} → ${newState.status}`);
+        });
 
         // Quitter le canal quand l'audio est terminé
         player.on(AudioPlayerStatus.Idle, () => {
+          console.log('[DEBUG] Player is now Idle, destroying connection');
           if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
             connection.destroy();
           }
@@ -122,7 +153,8 @@ async function playAdhanInGuild(guild, prayerName) {
 
         // Gestion des erreurs
         player.on('error', error => {
-          console.error(`Erreur player:`, error.message);
+          console.error(`[ERROR] Player error:`, error.message);
+          console.error(error);
           connection.destroy();
         });
 

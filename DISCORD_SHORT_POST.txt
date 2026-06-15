@@ -1,0 +1,56 @@
+🎵 **Bot joins voice channel but no audio plays - Need help!**
+
+**Problem:** Bot joins voice, player shows "Playing", but NO AUDIO heard (Railway Linux + Windows local)
+
+**Versions:**
+• discord.js: 14.14.1
+• @discordjs/voice: 0.17.0
+• Node: 24.10.0 (local) / 18.20.5 (Railway)
+
+**What works:**
+✅ Bot connects, slash commands work
+✅ Joins voice channels successfully
+✅ Player emits AudioPlayerStatus.Playing
+✅ connection.subscribe(player) returns truthy
+✅ FFmpeg available (ffmpeg-static)
+✅ Opusscript available
+✅ TweetNaCl available
+✅ No errors in logs
+
+**What doesn't work:**
+❌ No audio heard by anyone
+❌ Bot stays silent for audio duration then disconnects
+
+**Code snippet:**
+```js
+const player = createAudioPlayer();
+const stream = fs.createReadStream(path.resolve('./audio/adhan.mp3'));
+const resource = createAudioResource(stream, {
+  inputType: StreamType.Arbitrary,
+  inlineVolume: true
+});
+player.play(resource);
+connection.subscribe(player);
+```
+
+**Audio file:**
+• MP3, 320kbps, 44.1kHz stereo, 45s
+• Validated with ffprobe (file is valid)
+
+**What I tried:**
+• Different encryption libs (libsodium → sodium → tweetnacl)
+• Different opus encoders (@discordjs/opus → opusscript)
+• Different AudioResource configs
+• @discordjs/voice 0.16.1 and 0.17.0
+• 2 different Discord bots from scratch
+• Verified all permissions (Connect, Speak, etc.)
+• Bot not muted, volume 100%
+
+**Questions:**
+1. Is tweetnacl + opusscript sufficient? (both pure JS, no native deps)
+2. Missing native dependencies?
+3. Any diagnostic steps I haven't tried?
+
+Full code: https://github.com/4KKKKKKK/bot-adhan-discord
+
+Any help appreciated! 🙏

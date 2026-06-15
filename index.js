@@ -112,6 +112,34 @@ async function playAdhanInGuild(guild, prayerName) {
         });
         console.log(`[DEBUG] Voice channel joined successfully`);
 
+        // Attendre que la connexion soit prête avant de jouer
+        await new Promise((resolve) => {
+          if (connection.state.status === VoiceConnectionStatus.Ready) {
+            console.log(`[DEBUG] Connection already ready`);
+            resolve();
+          } else {
+            console.log(`[DEBUG] Waiting for connection to be ready... (current: ${connection.state.status})`);
+
+            const onStateChange = (oldState, newState) => {
+              console.log(`[DEBUG] Connection: ${oldState.status} → ${newState.status}`);
+              if (newState.status === VoiceConnectionStatus.Ready) {
+                console.log(`[DEBUG] Connection is now ready!`);
+                connection.off('stateChange', onStateChange);
+                resolve();
+              }
+            };
+
+            connection.on('stateChange', onStateChange);
+
+            // Timeout après 10 secondes
+            setTimeout(() => {
+              console.log(`[DEBUG] Connection ready timeout (current state: ${connection.state.status})`);
+              connection.off('stateChange', onStateChange);
+              resolve();
+            }, 10000);
+          }
+        });
+
         const player = createAudioPlayer();
         const audioPath = path.resolve(ADHAN_AUDIO);
 

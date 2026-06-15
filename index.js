@@ -13,6 +13,33 @@ const require = createRequire(import.meta.url);
 const prism = require('prism-media');
 prism.FFmpeg.getInfo = () => ({ command: ffmpegPath });
 
+// Diagnostic: Log which crypto/opus libraries are available
+console.log('[DIAGNOSTIC] Checking available libraries...');
+try {
+  require('@discordjs/opus');
+  console.log('[DIAGNOSTIC] ✅ @discordjs/opus found');
+} catch (e) {
+  console.log('[DIAGNOSTIC] ❌ @discordjs/opus NOT found');
+}
+try {
+  require('sodium-native');
+  console.log('[DIAGNOSTIC] ✅ sodium-native found');
+} catch (e) {
+  console.log('[DIAGNOSTIC] ❌ sodium-native NOT found');
+}
+try {
+  require('opusscript');
+  console.log('[DIAGNOSTIC] ℹ️  opusscript found (fallback)');
+} catch (e) {
+  console.log('[DIAGNOSTIC] ℹ️  opusscript NOT found');
+}
+try {
+  require('tweetnacl');
+  console.log('[DIAGNOSTIC] ℹ️  tweetnacl found (fallback)');
+} catch (e) {
+  console.log('[DIAGNOSTIC] ℹ️  tweetnacl NOT found');
+}
+
 // Configuration
 const TOKEN = process.env.DISCORD_TOKEN;
 const CONFIG_FILE = './config.json';

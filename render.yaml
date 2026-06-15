@@ -1,0 +1,11 @@
+services:
+  - type: pserv
+    name: bot-adhan-discord
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
